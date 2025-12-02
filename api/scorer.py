@@ -186,14 +186,14 @@ def handle_genres():
     else:
         return jsonify({"error": "Genres payload must be a string representation of a list."}), 400
     
-    print(str(raw_genres))
-    print(str(raw_genres_input))
+    genres = raw_genres["genres"]
+    print(str(genres))
     # Ensure the result is an iterable list before proceeding
-    if not isinstance(raw_genres, list):
+    if not isinstance(genres, list):
         return jsonify({"error": "Parsed content is not a list."}), 400
     
     # --- 4. EXECUTE SCORING (rest of logic remains the same) ---
-    top_5_parents = score_genres(raw_genres)
+    top_5_parents = score_genres(genres)
     expanded_list = get_related_genres(top_5_parents)
 
     return jsonify({
