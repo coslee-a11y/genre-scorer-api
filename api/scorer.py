@@ -153,7 +153,6 @@ def score_genres(raw_genres_list):
 
 app = Flask(__name__)
 # --- VERCEL/FLASK HANDLER (Simplified for Clean JSON Input) ---
-ß@app.route('/api/scorer', methods=['POST'])
 @app.route('/api/scorer', methods=['POST'])
 def handle_genres():
     # --- 1. READ RAW TEXT DATA ---
