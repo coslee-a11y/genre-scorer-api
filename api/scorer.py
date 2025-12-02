@@ -154,34 +154,38 @@ def score_genres(raw_genres_list):
 app = Flask(__name__)
 @app.route('/api/scorer', methods=['POST'])
 def handle_genres():
-    data = request.get_json()
-    if not data or 'genres' not in data:
-        return jsonify({"top_genres": [], "expanded_genres": []}), 400
-    print(str(data))
-    raw_genres_input = data['genres']
+    # 1. Attempt to get JSON data. If the Content-Type header is wrong, 
+    # or the body is empty, data will be None.
+    data = request.get_json(silent=True) # Use silent=True to prevent a 400 error if headers are messy
+
+    # 2. Handle the case where no valid JSON body was provided
+    if data is None:
+        # For debugging, we return a 400 error indicating missing body content
+        return jsonify({"error": "Request body missing or invalid JSON"}), 400
+    
+    # 3. Check for the 'genres' key
+    if 'genres' not in data:
+        return jsonify({"error": "Missing 'genres' list in request body"}), 400
+
+    raw_genres_input = data['genres'] 
     
     # === CRITICAL FIX: PARSE STRING LIST INTO PYTHON LIST ===
+    # (The rest of your robust defensive parsing logic is needed here)
     if isinstance(raw_genres_input, str):
         try:
             # Safely evaluate the string to turn it into a usable Python list
             raw_genres = ast.literal_eval(raw_genres_input)
-        except (ValueError, SyntaxError):
-            # Fallback if the string is malformed
-            print("Error: Failed to parse genre string using ast.literal_eval")
-            return jsonify({"error": "Invalid genre list string format."}), 400
+        except (ValueError, SyntaxError) as e:
+            return jsonify({"error": f"Invalid genre list format: {e}"}), 400
     elif isinstance(raw_genres_input, list):
-        # Already a list, use it directly
         raw_genres = raw_genres_input
     else:
-        # Neither a string nor a list, reject
         return jsonify({"error": "Genres payload must be a string or list."}), 400
     
-    # Ensure the result of the parse is indeed a list before proceeding
+    # Ensure the result is an iterable list before proceeding
     if not isinstance(raw_genres, list):
         return jsonify({"error": "Parsed input is not a list."}), 400
     
-    # =========================================================
-
     # Now that raw_genres is guaranteed to be a clean Python list:
     top_5_parents = score_genres(raw_genres)
     expanded_list = get_related_genres(top_5_parents)
