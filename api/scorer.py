@@ -3,6 +3,7 @@ from collections import Counter
 import json 
 import ast # We need this for safe evaluation
 
+app = Flask(__name__)
 # --- GENRE HIERARCHY & UTILITY FUNCTIONS ---
 
 GENRE_HIERARCHY = {
