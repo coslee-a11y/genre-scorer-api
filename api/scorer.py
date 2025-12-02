@@ -103,38 +103,6 @@ GENRE_HIERARCHY = {
     "cold_wave": ["post_punk", "darkwave"],
 }
 
-
-@app.route('/api/scorer', methods=['POST'])
-def handle_genres():
-    data = request.get_json()
-    raw_genres_input = data.get("genres", [])
-    
-    # === NEW DEFENSIVE LOGIC ===
-    if isinstance(raw_genres_input, str):
-        try:
-            # Use ast.literal_eval to safely convert the string representation of a list into a real Python list
-            raw_genres = ast.literal_eval(raw_genres_input)
-        except (ValueError, SyntaxError):
-            # If the string is malformed or invalid Python, reject it gracefully
-            return jsonify({"error": "Invalid genre list format (string could not be parsed to list)."}), 400
-    elif isinstance(raw_genres_input, list):
-        # If Monengage sends a clean list (expected scenario), use it directly
-        raw_genres = raw_genres_input
-    else:
-        return jsonify({"error": "Genres must be provided as a list or a list string representation."}), 400
-    # ==========================
-
-    if not raw_genres:
-        return jsonify({"top_genres": [], "expanded_genres": []})
-
-    top_genres = score_genres(raw_genres)
-    expanded_list = get_related_genres(top_genres)
-
-    return jsonify({
-        "top_genres": top_genres,
-        "expanded_genres": expanded_list,
-    })
-
 def get_related_genres(top_parent_genres):
     """
     Expands a list of core parent genres to include all relevant subgenres.
