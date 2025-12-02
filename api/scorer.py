@@ -3,7 +3,6 @@ from collections import Counter
 import json 
 import ast # We need this for safe evaluation
 
-app = Flask(__name__)
 # --- GENRE HIERARCHY & UTILITY FUNCTIONS ---
 
 GENRE_HIERARCHY = {
@@ -165,6 +164,7 @@ def handle_genres():
     
     # Get the top 5 highest-scored parent genres
     top_5_parents = score_genres(raw_genres)
+    print(str(top_5_parents))
     
     # Expand those parents into a complete list of related genres
     expanded_list = get_related_genres(top_5_parents)
