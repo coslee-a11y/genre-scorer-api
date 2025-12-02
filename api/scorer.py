@@ -168,26 +168,26 @@ def handle_genres():
     # --- 2. PREPARE INPUT FOR SCORING ---
     raw_genres_input = raw_text.strip()
     
-    # 3. CRITICAL STEP: PARSE STRING LIST INTO PYTHON LIST
-    # Since MoEngage sends the list as a string (e.g., "['genre1', 'genre2']"), 
-    # we must use ast.literal_eval on the text input.
-    if isinstance(raw_genres_input, str):
-        try:
-            # Safely evaluate the string to turn it into a usable Python list
-            # We assume the content is a string representation of a Python list
-            raw_genres = ast.literal_eval(raw_genres_input)
-        except (ValueError, SyntaxError) as e:
-            # If the string is malformed or invalid Python list syntax, handle the error
-            return jsonify({"error": f"Invalid genre list format in body: {e}"}), 400
+    # # 3. CRITICAL STEP: PARSE STRING LIST INTO PYTHON LIST
+    # # Since MoEngage sends the list as a string (e.g., "['genre1', 'genre2']"), 
+    # # we must use ast.literal_eval on the text input.
+    # if isinstance(raw_genres_input, str):
+    #     try:
+    #         # Safely evaluate the string to turn it into a usable Python list
+    #         # We assume the content is a string representation of a Python list
+    #         raw_genres = ast.literal_eval(raw_genres_input)
+    #     except (ValueError, SyntaxError) as e:
+    #         # If the string is malformed or invalid Python list syntax, handle the error
+    #         return jsonify({"error": f"Invalid genre list format in body: {e}"}), 400
     
-    elif isinstance(raw_genres_input, list):
-        # This path is highly unlikely if content-type is text/plain, but kept for robustness
-        raw_genres = raw_genres_input
-    else:
-        return jsonify({"error": "Genres payload must be a string representation of a list."}), 400
+    # elif isinstance(raw_genres_input, list):
+    #     # This path is highly unlikely if content-type is text/plain, but kept for robustness
+    #     raw_genres = raw_genres_input
+    # else:
+    #     return jsonify({"error": "Genres payload must be a string representation of a list."}), 400
     
-    
-    genres = json.loads(raw_genres)["genres"]
+    print(type(raw_genres_input))
+    genres = json.loads(str(raw_genres_input))["genres"]
     print(str(genres))
     # Ensure the result is an iterable list before proceeding
     if not isinstance(genres, list):
