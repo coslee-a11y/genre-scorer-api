@@ -157,7 +157,7 @@ def handle_genres():
     data = request.get_json()
     if not data or 'genres' not in data:
         return jsonify({"top_genres": [], "expanded_genres": []}), 400
-
+    print(str(data))
     raw_genres_input = data['genres']
     
     # === CRITICAL FIX: PARSE STRING LIST INTO PYTHON LIST ===
