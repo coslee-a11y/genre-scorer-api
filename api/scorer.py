@@ -159,7 +159,8 @@ def handle_genres():
     # --- 1. READ RAW TEXT DATA ---
     # request.data contains the raw bytes of the request body (for any content type).
     # .decode('utf-8') converts the bytes to a Python string.
-    raw_text = request.data.decode('utf-8') 
+
+    raw_text = request.get_data(as_text=True)
     
     # Check for empty data immediately
     if not raw_text.strip():
