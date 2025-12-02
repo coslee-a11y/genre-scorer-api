@@ -127,7 +127,7 @@ def score_genres(raw_genres_list):
 
     for genre_id in raw_genres_list:
         normalized_id = genre_id.lower().strip()
-
+        print(genre_id)
         # 1. Score the genre itself
         genre_scores[normalized_id] += 1
 
