@@ -154,26 +154,43 @@ def score_genres(raw_genres_list):
 app = Flask(__name__)
 # --- VERCEL/FLASK HANDLER (Simplified for Clean JSON Input) ---
 @app.route('/api/scorer', methods=['POST'])
+@app.route('/api/scorer', methods=['POST'])
 def handle_genres():
-    # 1. Get dictionary from JSON payload.
-    # We rely on MoEngage to send clean JSON, so request.get_json() should succeed.
+    # 1. Attempt to get JSON data. Use silent=True to prevent Vercel returning a 400.
     data = request.get_json(silent=True) 
 
-    # 2. Check for missing body or key
-    if not data or 'genres' not in data:
-        return jsonify({"error": "Missing JSON body or 'genres' key"}), 400
+    # 2. CRITICAL CHECK: Ensure the payload is a dictionary and not None/string.
+    if not isinstance(data, dict):
+        # If Flask received a string or None, the body was improperly sent 
+        # (usually missing Content-Type or invalid JSON structure).
+        return jsonify({"error": "Request body missing or improperly formatted as JSON dictionary."}), 400
+    
+    # 3. Check for the 'genres' key
+    if 'genres' not in data:
+        return jsonify({"error": "Missing 'genres' list in request body"}), 400
 
-    raw_genres = data['genres']
-
-    # 3. Final safety check: This must be a list if the template succeeded.
+    raw_genres_input = data['genres'] 
+    
+    # === Defensive Parsing Logic (Retained from previous step) ===
+    if isinstance(raw_genres_input, str):
+        # Use ast.literal_eval to handle the MoEngage-enforced string list format
+        try:
+            raw_genres = ast.literal_eval(raw_genres_input.strip()) # strip any surrounding whitespace
+        except (ValueError, SyntaxError) as e:
+            return jsonify({"error": f"Invalid genre list format: {e}"}), 400
+    elif isinstance(raw_genres_input, list):
+        raw_genres = raw_genres_input
+    else:
+        return jsonify({"error": "Genres payload must be a string or list."}), 400
+    
+    # Final check on the parsed content
     if not isinstance(raw_genres, list):
-        return jsonify({"error": "Genres payload must be a JSON list (array)."}), 400
-
-    # 4. Execute scoring and expansion
+        return jsonify({"error": "Parsed input is not a list."}), 400
+    
+    # --- Execution continues only if data structure is clean ---
     top_5_parents = score_genres(raw_genres)
     expanded_list = get_related_genres(top_5_parents)
 
-    # 5. Return clean output
     return jsonify({
         "top_genres": top_5_parents,
         "expanded_genres": expanded_list,
