@@ -162,6 +162,7 @@ def handle_genres():
 
     # 2. STRIP ALL PLATFORM-ENFORCED QUOTING LAYERS
     cleaned_string = raw_text.strip().strip('"').strip("'")
+    print(cleaned_string)
     
     # 3. USE AST.LITERAL_EVAL to handle the single-quoted Python list syntax
     try:
@@ -171,6 +172,7 @@ def handle_genres():
         print(f"CRITICAL: Failed to parse Python dict string: {e}")
         return jsonify({"error": f"Payload structure invalid or contains bad characters: {e}"}), 400
     
+    print(payload_dict,type(payload_dict))
     # 4. Extract the genre list
     if not isinstance(payload_dict, dict) or 'genres' not in payload_dict:
         return jsonify({"error": "Payload is not a valid dictionary or missing 'genres' key."}), 400
