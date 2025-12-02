@@ -159,7 +159,7 @@ def handle_genres():
         return jsonify({"top_genres": [], "expanded_genres": []}), 400
 
     raw_genres_input = data['genres']
-
+    print(str(data))
     # === FINAL ROBUST PARSING LOGIC ===
     if isinstance(raw_genres_input, str):
         # 1. Clean the string: Remove outer quotes if MoEngage enforced them.
