@@ -151,7 +151,7 @@ def score_genres(raw_genres_list):
     top_5_tuples = genre_scores.most_common(5)
     return [genre_id for genre_id, count in top_5_tuples]
 
-
+app = Flask(__name__)
 @app.route('/api/scorer', methods=['POST'])
 def handle_genres():
     data = request.get_json()
