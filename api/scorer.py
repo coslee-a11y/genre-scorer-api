@@ -152,48 +152,28 @@ def score_genres(raw_genres_list):
     return [genre_id for genre_id, count in top_5_tuples]
 
 app = Flask(__name__)
+# --- VERCEL/FLASK HANDLER (Simplified for Clean JSON Input) ---
 @app.route('/api/scorer', methods=['POST'])
 def handle_genres():
-    data = request.get_json()
+    # 1. Get dictionary from JSON payload.
+    # We rely on MoEngage to send clean JSON, so request.get_json() should succeed.
+    data = request.get_json(silent=True) 
+
+    # 2. Check for missing body or key
     if not data or 'genres' not in data:
-        return jsonify({"top_genres": [], "expanded_genres": []}), 400
+        return jsonify({"error": "Missing JSON body or 'genres' key"}), 400
 
-    raw_genres_input = data['genres']
-    print(str(data))
-    # === FINAL ROBUST PARSING LOGIC ===
-    if isinstance(raw_genres_input, str):
-        # 1. Clean the string: Remove outer quotes if MoEngage enforced them.
-        # This handles the case where MoEngage sends: "['genre1', 'genre2']" 
-        cleaned_genres_string = raw_genres_input.strip()
-        
-        # Check if the string starts and ends with a quote (which MoEngage often does)
-        if cleaned_genres_string.startswith('"') and cleaned_genres_string.endswith('"'):
-            # Strip the outermost quotes added by the platform's JSON processor
-            cleaned_genres_string = cleaned_genres_string.strip('"')
+    raw_genres = data['genres']
 
-        try:
-            # 2. Use ast.literal_eval to safely convert the Python list string into a list object
-            raw_genres = ast.literal_eval(cleaned_genres_string)
-        except (ValueError, SyntaxError) as e:
-            # This handles cases where the inner content is malformed
-            print(f"AST Evaluation Failed: {e}")
-            return jsonify({"error": f"Invalid genre list format: {e}"}), 400
-    
-    elif isinstance(raw_genres_input, list):
-        # Already a list (clean API call), use it directly
-        raw_genres = raw_genres_input
-    else:
-        return jsonify({"error": "Genres payload must be a list or list string."}), 400
-    # ==================================
-
-    # Ensure the result is an iterable list before proceeding
+    # 3. Final safety check: This must be a list if the template succeeded.
     if not isinstance(raw_genres, list):
-        return jsonify({"error": "Parsed input is not a list."}), 400
+        return jsonify({"error": "Genres payload must be a JSON list (array)."}), 400
 
-    # Now, raw_genres is guaranteed to be a clean Python list:
+    # 4. Execute scoring and expansion
     top_5_parents = score_genres(raw_genres)
     expanded_list = get_related_genres(top_5_parents)
 
+    # 5. Return clean output
     return jsonify({
         "top_genres": top_5_parents,
         "expanded_genres": expanded_list,
