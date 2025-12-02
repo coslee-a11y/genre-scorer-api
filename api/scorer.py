@@ -154,39 +154,43 @@ def score_genres(raw_genres_list):
 app = Flask(__name__)
 @app.route('/api/scorer', methods=['POST'])
 def handle_genres():
-    # 1. Attempt to get JSON data. If the Content-Type header is wrong, 
-    # or the body is empty, data will be None.
-    data = request.get_json() # Use silent=True to prevent a 400 error if headers are messy
+    data = request.get_json()
+    if not data or 'genres' not in data:
+        return jsonify({"top_genres": [], "expanded_genres": []}), 400
 
-    # 2. Handle the case where no valid JSON body was provided
-    if data is None:
-        # For debugging, we return a 400 error indicating missing body content
-        return jsonify({"error": "Request body missing or invalid JSON"}), 400
-    
-    # 3. Check for the 'genres' key
-    if 'genres' not in data:
-        return jsonify({"error": "Missing 'genres' list in request body"}), 400
+    raw_genres_input = data['genres']
 
-    raw_genres_input = data['genres'] 
-    
-    # === CRITICAL FIX: PARSE STRING LIST INTO PYTHON LIST ===
-    # (The rest of your robust defensive parsing logic is needed here)
+    # === FINAL ROBUST PARSING LOGIC ===
     if isinstance(raw_genres_input, str):
+        # 1. Clean the string: Remove outer quotes if MoEngage enforced them.
+        # This handles the case where MoEngage sends: "['genre1', 'genre2']" 
+        cleaned_genres_string = raw_genres_input.strip()
+        
+        # Check if the string starts and ends with a quote (which MoEngage often does)
+        if cleaned_genres_string.startswith('"') and cleaned_genres_string.endswith('"'):
+            # Strip the outermost quotes added by the platform's JSON processor
+            cleaned_genres_string = cleaned_genres_string.strip('"')
+
         try:
-            # Safely evaluate the string to turn it into a usable Python list
-            raw_genres = ast.literal_eval(raw_genres_input)
+            # 2. Use ast.literal_eval to safely convert the Python list string into a list object
+            raw_genres = ast.literal_eval(cleaned_genres_string)
         except (ValueError, SyntaxError) as e:
+            # This handles cases where the inner content is malformed
+            print(f"AST Evaluation Failed: {e}")
             return jsonify({"error": f"Invalid genre list format: {e}"}), 400
+    
     elif isinstance(raw_genres_input, list):
+        # Already a list (clean API call), use it directly
         raw_genres = raw_genres_input
     else:
-        return jsonify({"error": "Genres payload must be a string or list."}), 400
-    
+        return jsonify({"error": "Genres payload must be a list or list string."}), 400
+    # ==================================
+
     # Ensure the result is an iterable list before proceeding
     if not isinstance(raw_genres, list):
         return jsonify({"error": "Parsed input is not a list."}), 400
-    
-    # Now that raw_genres is guaranteed to be a clean Python list:
+
+    # Now, raw_genres is guaranteed to be a clean Python list:
     top_5_parents = score_genres(raw_genres)
     expanded_list = get_related_genres(top_5_parents)
 
