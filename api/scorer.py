@@ -153,41 +153,44 @@ def score_genres(raw_genres_list):
 
 app = Flask(__name__)
 # --- VERCEL/FLASK HANDLER (Simplified for Clean JSON Input) ---
-@app.route('/api/scorer', methods=['POST'])
+ß@app.route('/api/scorer', methods=['POST'])
 @app.route('/api/scorer', methods=['POST'])
 def handle_genres():
-    # 1. Attempt to get JSON data. Use silent=True to prevent Vercel returning a 400.
-    data = request.get_json(silent=True) 
-
-    # 2. CRITICAL CHECK: Ensure the payload is a dictionary and not None/string.
-    if not isinstance(data, dict):
-        # If Flask received a string or None, the body was improperly sent 
-        # (usually missing Content-Type or invalid JSON structure).
-        return jsonify({"error": "Request body missing or improperly formatted as JSON dictionary."}), 400
+    # --- 1. READ RAW TEXT DATA ---
+    # request.data contains the raw bytes of the request body (for any content type).
+    # .decode('utf-8') converts the bytes to a Python string.
+    raw_text = request.data.decode('utf-8') 
     
-    # 3. Check for the 'genres' key
-    if 'genres' not in data:
-        return jsonify({"error": "Missing 'genres' list in request body"}), 400
+    # Check for empty data immediately
+    if not raw_text.strip():
+        return jsonify({"error": "Request body is empty"}), 400
 
-    raw_genres_input = data['genres'] 
+    # --- 2. PREPARE INPUT FOR SCORING ---
+    raw_genres_input = raw_text.strip()
     
-    # === Defensive Parsing Logic (Retained from previous step) ===
+    # 3. CRITICAL STEP: PARSE STRING LIST INTO PYTHON LIST
+    # Since MoEngage sends the list as a string (e.g., "['genre1', 'genre2']"), 
+    # we must use ast.literal_eval on the text input.
     if isinstance(raw_genres_input, str):
-        # Use ast.literal_eval to handle the MoEngage-enforced string list format
         try:
-            raw_genres = ast.literal_eval(raw_genres_input.strip()) # strip any surrounding whitespace
+            # Safely evaluate the string to turn it into a usable Python list
+            # We assume the content is a string representation of a Python list
+            raw_genres = ast.literal_eval(raw_genres_input)
         except (ValueError, SyntaxError) as e:
-            return jsonify({"error": f"Invalid genre list format: {e}"}), 400
+            # If the string is malformed or invalid Python list syntax, handle the error
+            return jsonify({"error": f"Invalid genre list format in body: {e}"}), 400
+    
     elif isinstance(raw_genres_input, list):
+        # This path is highly unlikely if content-type is text/plain, but kept for robustness
         raw_genres = raw_genres_input
     else:
-        return jsonify({"error": "Genres payload must be a string or list."}), 400
+        return jsonify({"error": "Genres payload must be a string representation of a list."}), 400
     
-    # Final check on the parsed content
+    # Ensure the result is an iterable list before proceeding
     if not isinstance(raw_genres, list):
-        return jsonify({"error": "Parsed input is not a list."}), 400
+        return jsonify({"error": "Parsed content is not a list."}), 400
     
-    # --- Execution continues only if data structure is clean ---
+    # --- 4. EXECUTE SCORING (rest of logic remains the same) ---
     top_5_parents = score_genres(raw_genres)
     expanded_list = get_related_genres(top_5_parents)
 
