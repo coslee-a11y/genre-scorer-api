@@ -156,7 +156,7 @@ app = Flask(__name__)
 def handle_genres():
     # 1. Attempt to get JSON data. If the Content-Type header is wrong, 
     # or the body is empty, data will be None.
-    data = request.get_json(silent=True) # Use silent=True to prevent a 400 error if headers are messy
+    data = request.get_json() # Use silent=True to prevent a 400 error if headers are messy
 
     # 2. Handle the case where no valid JSON body was provided
     if data is None:
