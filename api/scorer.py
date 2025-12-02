@@ -3,7 +3,6 @@ from collections import Counter
 import json 
 import ast # We need this for safe evaluation
 
-# --- GENRE HIERARCHY & UTILITY FUNCTIONS ---
 
 GENRE_HIERARCHY = {
     # === Electronic/Techno/House Tree ===
@@ -155,47 +154,35 @@ app = Flask(__name__)
 # --- VERCEL/FLASK HANDLER (Simplified for Clean JSON Input) ---
 @app.route('/api/scorer', methods=['POST'])
 def handle_genres():
-    # --- 1. READ RAW TEXT DATA ---
-    # request.data contains the raw bytes of the request body (for any content type).
-    # .decode('utf-8') converts the bytes to a Python string.
-
+    # 1. Get raw text input
     raw_text = request.get_data(as_text=True)
-    
-    # Check for empty data immediately
-    if not raw_text.strip():
-        return jsonify({"error": "Request body is empty"}), 400
 
-    # --- 2. PREPARE INPUT FOR SCORING ---
-    raw_genres_input = raw_text.strip()
+    if not raw_text.strip():
+        return jsonify({"top_genres": [], "expanded_genres": []}), 400
+
+    # 2. STRIP ALL PLATFORM-ENFORCED QUOTING LAYERS
+    cleaned_string = raw_text.strip().strip('"').strip("'")
     
-    # # 3. CRITICAL STEP: PARSE STRING LIST INTO PYTHON LIST
-    # # Since MoEngage sends the list as a string (e.g., "['genre1', 'genre2']"), 
-    # # we must use ast.literal_eval on the text input.
-    # if isinstance(raw_genres_input, str):
-    #     try:
-    #         # Safely evaluate the string to turn it into a usable Python list
-    #         # We assume the content is a string representation of a Python list
-    #         raw_genres = ast.literal_eval(raw_genres_input)
-    #     except (ValueError, SyntaxError) as e:
-    #         # If the string is malformed or invalid Python list syntax, handle the error
-    #         return jsonify({"error": f"Invalid genre list format in body: {e}"}), 400
+    # 3. USE AST.LITERAL_EVAL to handle the single-quoted Python list syntax
+    try:
+        # The input is a dict string (e.g., {'genres': [...]})
+        payload_dict = ast.literal_eval(cleaned_string)
+    except (ValueError, SyntaxError) as e:
+        print(f"CRITICAL: Failed to parse Python dict string: {e}")
+        return jsonify({"error": f"Payload structure invalid or contains bad characters: {e}"}), 400
     
-    # elif isinstance(raw_genres_input, list):
-    #     # This path is highly unlikely if content-type is text/plain, but kept for robustness
-    #     raw_genres = raw_genres_input
-    # else:
-    #     return jsonify({"error": "Genres payload must be a string representation of a list."}), 400
-    print(raw_genres_input)
-    genres = json.loads(raw_genres_input)
-    print(genres, type(genres))
-    genres2 = genres["genres"]
-    print(str(genres2))
-    # Ensure the result is an iterable list before proceeding
-    if not isinstance(genres, list):
-        return jsonify({"error": "Parsed content is not a list."}), 400
-    
-    # --- 4. EXECUTE SCORING (rest of logic remains the same) ---
-    top_5_parents = score_genres(genres)
+    # 4. Extract the genre list
+    if not isinstance(payload_dict, dict) or 'genres' not in payload_dict:
+        return jsonify({"error": "Payload is not a valid dictionary or missing 'genres' key."}), 400
+        
+    raw_genres_list = payload_dict['genres']
+
+    # 5. Final validation and execution
+    if not isinstance(raw_genres_list, list):
+        # This catches if the value was still a string, e.g., '{{genres_to_score}}'
+        return jsonify({"error": "Genres key value is not a list after parsing."}), 400
+
+    top_5_parents = score_genres(raw_genres_list)
     expanded_list = get_related_genres(top_5_parents)
 
     return jsonify({
