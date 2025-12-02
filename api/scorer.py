@@ -161,7 +161,7 @@ def handle_genres():
         return jsonify({"top_genres": [], "expanded_genres": []}), 400
 
     raw_genres = data['genres']
-    
+    print(str(raw_genres))
     # Get the top 5 highest-scored parent genres
     top_5_parents = score_genres(raw_genres)
     print(str(top_5_parents))
