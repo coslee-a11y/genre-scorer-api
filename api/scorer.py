@@ -185,10 +185,11 @@ def handle_genres():
     #     raw_genres = raw_genres_input
     # else:
     #     return jsonify({"error": "Genres payload must be a string representation of a list."}), 400
-    
-    print(type(raw_genres_input))
-    genres = json.loads(str(raw_genres_input))["genres"]
-    print(str(genres))
+    print(raw_genres_input)
+    genres = json.loads(raw_genres_input)
+    print(genres, type(genres))
+    genres2 = genres["genres"]
+    print(str(genres2))
     # Ensure the result is an iterable list before proceeding
     if not isinstance(genres, list):
         return jsonify({"error": "Parsed content is not a list."}), 400
