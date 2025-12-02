@@ -160,8 +160,10 @@ def handle_genres():
     if not raw_text.strip():
         return jsonify({"top_genres": [], "expanded_genres": []}), 400
 
+    raw_text2 = json.loads(raw_text)
+    print(json.loads(raw_text))
     # 2. STRIP ALL PLATFORM-ENFORCED QUOTING LAYERS
-    cleaned_string = raw_text.strip().strip('"').strip("'")
+    cleaned_string = raw_text2.strip().strip('"').strip("'")
     print(cleaned_string)
     
     # 3. USE AST.LITERAL_EVAL to handle the single-quoted Python list syntax
