@@ -102,6 +102,7 @@ GENRE_HIERARCHY = {
     "cold_wave": ["post_punk", "darkwave"],
 }
 
+
 def get_related_genres(top_parent_genres):
     """
     Expands a list of core parent genres to include all relevant subgenres.
@@ -150,23 +151,39 @@ def score_genres(raw_genres_list):
     top_5_tuples = genre_scores.most_common(5)
     return [genre_id for genre_id, count in top_5_tuples]
 
-# --- VERCEL/FLASK API HANDLER ---
-app = Flask(__name__)
 
 @app.route('/api/scorer', methods=['POST'])
 def handle_genres():
     data = request.get_json()
     if not data or 'genres' not in data:
-        # Returning a reasonable default for demonstration purposes
         return jsonify({"top_genres": [], "expanded_genres": []}), 400
 
-    raw_genres = data['genres']
-    print(str(raw_genres))
-    # Get the top 5 highest-scored parent genres
-    top_5_parents = score_genres(raw_genres)
-    print(str(top_5_parents))
+    raw_genres_input = data['genres']
     
-    # Expand those parents into a complete list of related genres
+    # === CRITICAL FIX: PARSE STRING LIST INTO PYTHON LIST ===
+    if isinstance(raw_genres_input, str):
+        try:
+            # Safely evaluate the string to turn it into a usable Python list
+            raw_genres = ast.literal_eval(raw_genres_input)
+        except (ValueError, SyntaxError):
+            # Fallback if the string is malformed
+            print("Error: Failed to parse genre string using ast.literal_eval")
+            return jsonify({"error": "Invalid genre list string format."}), 400
+    elif isinstance(raw_genres_input, list):
+        # Already a list, use it directly
+        raw_genres = raw_genres_input
+    else:
+        # Neither a string nor a list, reject
+        return jsonify({"error": "Genres payload must be a string or list."}), 400
+    
+    # Ensure the result of the parse is indeed a list before proceeding
+    if not isinstance(raw_genres, list):
+        return jsonify({"error": "Parsed input is not a list."}), 400
+    
+    # =========================================================
+
+    # Now that raw_genres is guaranteed to be a clean Python list:
+    top_5_parents = score_genres(raw_genres)
     expanded_list = get_related_genres(top_5_parents)
 
     return jsonify({
